@@ -9,12 +9,14 @@ The port number is passed as an argument
 #include <string.h>
 #include <sys/types.h> 
 #include <sys/socket.h>
+#include <sys/sendfile.h>
 #include <netinet/in.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <fcntl.h>
 
-#define PORT_NO 8080
+#define PORT_NO 8081
 #define THREAD_NO 5
 #define MAN_BUF_CHAR_NO 2048
 
@@ -23,8 +25,7 @@ typedef struct {
 }args_T;
 
 void* acceptClient(void *param);
-void mainRouter(char buffer[]);
-char* readRequest(char buffer[]);
+void mainRouter(char buffer[], int cli_sockfd);
 
 int main(int argc, char *argv[]) {
     int sockfd;
@@ -52,7 +53,7 @@ int main(int argc, char *argv[]) {
 
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = INADDR_ANY;
-	serv_addr.sin_port = htons(8091);  // store in machine-neutral format
+	serv_addr.sin_port = htons(PORT_NO);  // store in machine-neutral format
 
 	 /* Bind address to the socket */
 
@@ -94,8 +95,10 @@ void* acceptClient(void *args) {
     int cli_sockfd;
     struct sockaddr_in cli_addr;
     socklen_t clilen;
-    char buffer[MAN_BUF_CHAR_NO];
     int n;
+
+    char buffer[MAN_BUF_CHAR_NO];
+    bzero(buffer,MAN_BUF_CHAR_NO);
 
     args_T *newargs = args;
     int sockfd = newargs->sockfd;
@@ -107,7 +110,6 @@ void* acceptClient(void *args) {
         exit(1);
     }
 
-    bzero(buffer,MAN_BUF_CHAR_NO);
 
     /* Read characters from the connection,
     then process */
@@ -119,43 +121,69 @@ void* acceptClient(void *args) {
     }
 
     /* Place analise the requests*/
-    mainRouter(buffer);
+    mainRouter(buffer, cli_sockfd);
 
 
     close(cli_sockfd);
     return 0;
 }
 
-void mainRouter(char buffer[]){
-    printf("%s\n//\n", buffer);
-    printf("%s", buffer+ 4*sizeof(char));
-    printf("sizeof buff: %d\n", buffer[4] == '\n');
-//    readRequest(buffer);
+void mainRouter(char buffer[], int cli_sockfd){
+    printf("%s\n\n", buffer);
 
+    char *path;
+    int filefd;
+    int n;
 
+    /* Get the domain and the path from the request*/
 
-}
+    path = strstr(buffer, "/home/comp30023/website");
+    path = strtok(path, " ");
 
-char* readRequest(char buffer[]){
+    if (access(path, R_OK) == 0){
+        printf("FOUND FILE at: %s", path);
 
-    char path[MAN_BUF_CHAR_NO];
-
-    /* get first line in request*/
-    for (int i=0; ; i++){
-        if (buffer[i] != '\n'){
-            path[i] = buffer[i];
-        }else{
-            break;
+        filefd = open(path, O_RDONLY);
+        if (filefd < 0){
+            perror("ERROR open file");
         }
+        n = sendfile(cli_sockfd, filefd, NULL, 175000);
+        if (n < 0){
+            perror("ERROR send file");
+        }
+
+        close(filefd);
+    }else{
+        printf("NOT FOUND FILE at: %s\n", path);
     }
 
-    /* separata path*/
 
 
-    return path;
 }
 
 
+//void chackvalid(){
+//    /* Check domain validity*/
+//    path = strtok(domain, "/");
+//    if (strcmp(path, "home")){
+//        printf("Domain is not valid.\n");
+//        exit(1);
+//    }
+//    printf("pd is: %s\n\n", path);
+//    path = strtok(NULL, "/");
+//    if (strcmp(path, "comp30023")){
+//        printf("Domain is not valid.\n");
+//        exit(1);
+//    }
+//    printf("pd is: %s\n\n", path);
+//    path = strtok(NULL, "/");
+//    if (strcmp(path, "website")){
+//        printf("Domain is not valid.\n");
+//        exit(1);
+//    }
+//    printf("domain is: %s\n\n", domain);
+//    printf("pd is: %s\n\n", path);
+//}
 
 
 
