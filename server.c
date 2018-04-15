@@ -15,19 +15,21 @@
 #include <semaphore.h>
 #include <fcntl.h>
 
-#define THREAD_NO 4
-#define MAX_BUF_CHAR_NO 2048
-#define HEADER_TH "HTTP/1.0 200 OK\n"
-#define HEADER_FH "HTTP/1.0 404 NOT FOUND\n"
-#define HEADER_HTML "Content-Type: text/html\n\r\n"
-#define HEADER_CSS "Content-Type: text/css\n\r\n"
-#define HEADER_JPEG "Content-Type: image/jpeg\n\r\n"
-#define HEADER_JS "Content-Type: text/javascript\n\r\n"
+static const int THREAD_NO = 10;
+static const int MAX_BUF_CHAR_NO = 2048;
+static const int MAX_HEAD_LEN = 4196;
+static const int MAX_FILE_SIZE = 100;
+static const char* HEADER_200 = "HTTP/1.0 200 OK\n";
+static const char* HEADER_404 = "HTTP/1.0 404 NOT FOUND\r\n";
+static const char* HEADER_HTML = "Content-Type: text/html\n\r\n";
+static const char* HEADER_CSS = "Content-Type: text/css\r\n\r\n";
+static const char* HEADER_JPEG = "Content-Type: image/jpeg\n\r\n";
+static const char* HEADER_JS = "Content-Type: text/javascript\n\r\n";
 
 /*REMEMBER TO CHANGE BACK*/
 /*REMEMBER TO CHANGE BACK*/
 /*REMEMBER TO CHANGE BACK*/
-#define DOMAIN "/home/ubuntu/comp30023/ass1/test"
+static const char* DOMAIN = "/home/ubuntu/comp30023/ass1/test";
 
 
 typedef struct {
@@ -104,7 +106,7 @@ int main(int argc, char *argv[]) {
 
         /* Package clients */
 
-        args_T *args = malloc(sizeof(args_T));
+        args_T *args = malloc(sizeof(args_T) + 1);
         args->cli_sockfd = cli_sockfd;
 
         /* Create threads, pass client to each thread*/
@@ -113,8 +115,6 @@ int main(int argc, char *argv[]) {
             printf("\n Error creating thread %d", i);
             exit(1);
         }
-        printf("thread no: %d\n", i);
-
     }
 
 
@@ -159,7 +159,8 @@ void* acceptClient(void *args) {
 void mainRouter(char buffer[], int cli_sockfd){
 
     char* rltpath;
-    char* abspath = malloc(MAX_BUF_CHAR_NO * sizeof(char));
+    char* abspath = (char *) malloc(MAX_BUF_CHAR_NO * sizeof(char));
+    memset(abspath, 0, MAX_BUF_CHAR_NO);
     int filefd;
     int n;
 
@@ -174,26 +175,26 @@ void mainRouter(char buffer[], int cli_sockfd){
     }else{
         abspath = strcpy(abspath, rltpath);
     }
-    printf("abspath: %s\n", abspath);
 
     /* Get the type*/
-    char *type = malloc(sizeof(strchr(abspath, '.')));
+
+    char *type = malloc(MAX_HEAD_LEN * sizeof(char));
     strcpy(type, strchr(abspath, '.'));
 
     if (strcmp(type, ".html") == 0){
-        type = HEADER_HTML;
+        strcpy(type, HEADER_HTML);
         printf("HTML abspath: %s\n", abspath);
     }
     if (strcmp(type, ".css") == 0){
-        printf("type is .css\n");
         printf("css abspath: %s\n", abspath);
-        type = HEADER_CSS;
+        strcpy(type, HEADER_CSS);
     }
     if (strcmp(type, ".jpg") == 0){
-        type = HEADER_JPEG;
+        printf("jpeg abspath: %s\n", abspath);
+        strcpy(type, HEADER_JPEG);
     }
     if (strcmp(type, ".js") == 0){
-        type = HEADER_JS;
+        strcpy(type, HEADER_JS);
     }
 
     if (access(abspath, R_OK) == 0){
@@ -206,12 +207,8 @@ void mainRouter(char buffer[], int cli_sockfd){
 
         /* Send the 200 header*/
 
-        char* header = malloc(sizeof(HEADER_TH) + sizeof(type));
-        strcpy(header, HEADER_TH);
-
-        //
-//        char* temptype = malloc(sizeof(type));
-//        strcpy(temptype, type, strlen(type)+1);
+        char* header = malloc(MAX_HEAD_LEN * sizeof(char));
+        strcpy(header, HEADER_200);
         strcat(header, type);
         n = write(cli_sockfd, header, strlen(header));
         if (n < 0){
@@ -220,26 +217,25 @@ void mainRouter(char buffer[], int cli_sockfd){
 
         /* Send file */
 
-        n = sendfile(cli_sockfd, filefd, NULL, 100);
+        n = sendfile(cli_sockfd, filefd, NULL, MAX_FILE_SIZE);
         if (n < 0){
             perror("ERROR send file");
         }
-//        free(temptype);
         free(header);
     }else{
 
         /* Send the 404 header*/
 
-//        char* header = malloc(sizeof(HEADER_FH));
-//        strcpy(header, HEADER_FH);
-
-        n = write(cli_sockfd, HEADER_FH, strlen(HEADER_FH));
+        char* header = malloc(MAX_HEAD_LEN * sizeof(char));
+        strcpy(header, HEADER_404);
+        n = write(cli_sockfd, header, strlen(header));
         if (n < 0){
             perror("ERROR send header");
         }
-//        free(header);
+        free(header);
     }
     close(filefd);
+    free(type);
     free(abspath);
     return;
 }
