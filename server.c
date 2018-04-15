@@ -15,16 +15,20 @@
 #include <semaphore.h>
 #include <fcntl.h>
 
-#define THREAD_NO 5
+#define THREAD_NO 4
 #define MAX_BUF_CHAR_NO 2048
-#defien HEADER_200 "HTTP/1.0 200 OK\n"
-#defien HEADER_400 "HTTP/1.0 400 OK\n"
-#define HEADER_HTML "Content-Type: text/html\n\n"
+#define HEADER_TH "HTTP/1.0 200 OK\n"
+#define HEADER_FH "HTTP/1.0 404 NOT FOUND\n"
+#define HEADER_HTML "Content-Type: text/html\n\r\n"
+#define HEADER_CSS "Content-Type: text/css\n\r\n"
+#define HEADER_JPEG "Content-Type: image/jpeg\n\r\n"
+#define HEADER_JS "Content-Type: text/javascript\n\r\n"
 
 /*REMEMBER TO CHANGE BACK*/
 /*REMEMBER TO CHANGE BACK*/
 /*REMEMBER TO CHANGE BACK*/
 #define DOMAIN "/home/ubuntu/comp30023/ass1/test"
+
 
 typedef struct {
     int cli_sockfd;
@@ -38,7 +42,7 @@ int main(int argc, char *argv[]) {
 	struct sockaddr_in serv_addr;
     int cli_sockfd;
     struct sockaddr_in cli_addr;
-    socklen_t clilen;
+    socklen_t clilen = sizeof(cli_addr);
 
     if (argc < 2)
     {
@@ -81,16 +85,14 @@ int main(int argc, char *argv[]) {
 	/* Listen on socket - means we're ready to accept connections - 
 	 incoming connection requests will be queued */
 
-	listen(sockfd,5);
+	listen(sockfd, 10);
 
     /* Accept a connection - block until a connection is ready to
      be accepted. Get back a new file descriptor to communicate on. */
 
-
     pthread_t tid;
 
-
-    for (int i = 0; i < THREAD_NO; ++i) {
+    for (int i = 0; i < THREAD_NO; i++) {
 
         /* Accept client*/
 
@@ -111,12 +113,16 @@ int main(int argc, char *argv[]) {
             printf("\n Error creating thread %d", i);
             exit(1);
         }
+        printf("thread no: %d\n", i);
+
     }
 
-    pthread_join(tid, NULL);
-    pthread_exit(NULL);
+
+//    pthread_exit(NULL);
 
     /* close socket */
+    pthread_join(tid, NULL);
+
 	close(sockfd);
 	return 0;
 }
@@ -128,8 +134,8 @@ void* acceptClient(void *args) {
     char buffer[MAX_BUF_CHAR_NO];
     bzero(buffer,MAX_BUF_CHAR_NO);
 
-    args_T *newargs = args;
-    int cli_sockfd = newargs->cli_sockfd;
+    args_T *tempargs = args;
+    int cli_sockfd = tempargs->cli_sockfd;
 
     /* Read characters from the connection,
     then process */
@@ -146,14 +152,14 @@ void* acceptClient(void *args) {
 
 
     close(cli_sockfd);
-    free(newargs);
+    free(tempargs);
     return 0;
 }
 
 void mainRouter(char buffer[], int cli_sockfd){
 
     char* rltpath;
-    char* abspath = malloc(MAX_BUF_CHAR_NO* sizeof(char));
+    char* abspath = malloc(MAX_BUF_CHAR_NO * sizeof(char));
     int filefd;
     int n;
 
@@ -168,10 +174,30 @@ void mainRouter(char buffer[], int cli_sockfd){
     }else{
         abspath = strcpy(abspath, rltpath);
     }
-    printf("abspath is : %s\n\n", abspath);
+    printf("abspath: %s\n", abspath);
+
+    /* Get the type*/
+    char *type = malloc(sizeof(strchr(abspath, '.')));
+    strcpy(type, strchr(abspath, '.'));
+
+    if (strcmp(type, ".html") == 0){
+        type = HEADER_HTML;
+        printf("HTML abspath: %s\n", abspath);
+    }
+    if (strcmp(type, ".css") == 0){
+        printf("type is .css\n");
+        printf("css abspath: %s\n", abspath);
+        type = HEADER_CSS;
+    }
+    if (strcmp(type, ".jpg") == 0){
+        type = HEADER_JPEG;
+    }
+    if (strcmp(type, ".js") == 0){
+        type = HEADER_JS;
+    }
 
     if (access(abspath, R_OK) == 0){
-        printf("FOUND FILE at: %s\n", abspath);
+
         filefd = open(abspath, O_RDONLY);
         if (filefd < 0){
             perror("ERROR open file");
@@ -180,8 +206,14 @@ void mainRouter(char buffer[], int cli_sockfd){
 
         /* Send the 200 header*/
 
-        n = write(cli_sockfd, "HTTP/1.0 200 OK\nContent-Type: text/html\n\n", 41);
-        printf("%lu\n", sizeof("HTTP/1.0 200 OK\nContent-Type: text/html\n\n"));
+        char* header = malloc(sizeof(HEADER_TH) + sizeof(type));
+        strcpy(header, HEADER_TH);
+
+        //
+//        char* temptype = malloc(sizeof(type));
+//        strcpy(temptype, type, strlen(type)+1);
+        strcat(header, type);
+        n = write(cli_sockfd, header, strlen(header));
         if (n < 0){
             perror("ERROR send header");
         }
@@ -192,11 +224,23 @@ void mainRouter(char buffer[], int cli_sockfd){
         if (n < 0){
             perror("ERROR send file");
         }
-
-        close(filefd);
+//        free(temptype);
+        free(header);
     }else{
-        printf("NOT FOUND FILE at: %s\n", abspath);
-        n = send(cli_sockfd, "HTTP/1.0 400 OK\nContent-Type: text/html\n", 40, 0);
+
+        /* Send the 404 header*/
+
+//        char* header = malloc(sizeof(HEADER_FH));
+//        strcpy(header, HEADER_FH);
+
+        n = write(cli_sockfd, HEADER_FH, strlen(HEADER_FH));
+        if (n < 0){
+            perror("ERROR send header");
+        }
+//        free(header);
     }
+    close(filefd);
+    free(abspath);
+    return;
 }
 
