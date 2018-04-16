@@ -179,8 +179,8 @@ void mainRouter(char buffer[], int cli_sockfd){
         }
 
         /* Send file */
-
-        n = sendfile(cli_sockfd, filefd, NULL, MAX_FILE_SIZE);
+        int fsize = getFileSize(filefd);
+        n = sendfile(cli_sockfd, filefd, NULL, fsize);
         if (n < 0){
             perror("ERROR send file");
         }

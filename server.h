@@ -13,7 +13,6 @@
 static const int THREAD_NO = 10;
 static const int MAX_BUF_CHAR_NO = 2048;
 static const int MAX_HEAD_LEN = 4196;
-static const int MAX_FILE_SIZE = 20480;
 static const char* HEADER_200 = "HTTP/1.0 200 OK\r\n";
 static const char* HEADER_404 = "HTTP/1.0 404 NOT FOUND\r\n";
 static const char* HEADER_HTML = "Content-Type: text/html\r\n\r\n";
@@ -34,3 +33,4 @@ typedef struct {
 
 void* acceptClient(void *param);
 void mainRouter(char buffer[], int cli_sockfd);
+int getFileSize(int filefd);

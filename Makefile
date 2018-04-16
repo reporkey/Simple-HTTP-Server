@@ -1,15 +1,13 @@
 CC = gcc
 CFLAGS = -I. -Wall -lpthread
 DEPS = server.h
-OBJ = server.o
-EXE = server
-
+OBJ = server.o utilities.o
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-$(EXE): $(OBJ)
-	gcc -o $@ $^ $(CFLAGS)
+server: $(OBJ)
+	$(CC) -o server server.o utilities.o $(CFLAGS)
 
 clean:
-	rm -f $(OBJ) $(EXE)
+	rm -f $(OBJ) server
