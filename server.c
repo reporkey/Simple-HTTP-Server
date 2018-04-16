@@ -56,12 +56,8 @@ int main(int argc, char *argv[]) {
 
 	listen(sockfd, 10);
 
-    /* Accept a connection - block until a connection is ready to
-     be accepted. Get back a new file descriptor to communicate on. */
-
     pthread_t tid;
-
-    for (int i = 0; i < THREAD_NO; i++) {
+    while (1){
 
         /* Accept client*/
 
@@ -83,9 +79,6 @@ int main(int argc, char *argv[]) {
             exit(1);
         }
     }
-
-
-//    pthread_exit(NULL);
 
     /* close socket */
     pthread_join(tid, NULL);
@@ -116,7 +109,7 @@ void* acceptClient(void *args) {
 
     /* Place analise the requests*/
 
-    mainRouter(buffer, cli_sockfd, domain);
+    router(buffer, cli_sockfd, domain);
 
 
     close(cli_sockfd);
@@ -124,7 +117,7 @@ void* acceptClient(void *args) {
     return 0;
 }
 
-void mainRouter(char buffer[], int cli_sockfd, char* domain){
+void router(char buffer[], int cli_sockfd, char* domain){
 
     char* rltpath;
     char* abspath = (char *) malloc(MAX_BUF_CHAR_NO * sizeof(char));
@@ -145,25 +138,8 @@ void mainRouter(char buffer[], int cli_sockfd, char* domain){
     }
 
     /* Get the type*/
+    char* type = findType(abspath);
 
-    char *type = malloc(MAX_HEAD_LEN * sizeof(char));
-    strcpy(type, strrchr(abspath, '.'));
-
-    if (strcmp(type, ".html") == 0){
-        strcpy(type, HEADER_HTML);
-    }
-    if (strcmp(type, ".css") == 0){
-        strcpy(type, HEADER_CSS);
-    }
-    if (strcmp(type, ".jpg") == 0){
-        strcpy(type, HEADER_JPEG);
-    }
-
-    if (strcmp(type, ".js") == 0){
-        strcpy(type, HEADER_JS);
-    }
-
-    printf("type: %s\n", type);
     if (access(abspath, R_OK) == 0){
 
         filefd = open(abspath, O_RDONLY);
@@ -177,7 +153,6 @@ void mainRouter(char buffer[], int cli_sockfd, char* domain){
         char* header = malloc(MAX_HEAD_LEN * sizeof(char));
         strcpy(header, HEADER_200);
         strcat(header, type);
-//        printf("header: %s\n", header);
         n = write(cli_sockfd, header, strlen(header));
         if (n < 0){
             perror("ERROR send header");
@@ -207,4 +182,3 @@ void mainRouter(char buffer[], int cli_sockfd, char* domain){
     free(abspath);
     return;
 }
-

@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h> 
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/sendfile.h>
 #include <netinet/in.h>
@@ -10,8 +11,7 @@
 #include <semaphore.h>
 #include <fcntl.h>
 
-static const int THREAD_NO = 10;
-static const int MAX_BUF_CHAR_NO = 2048;
+static const int MAX_BUF_CHAR_NO = 4196;
 static const int MAX_HEAD_LEN = 4196;
 static const char* HEADER_200 = "HTTP/1.0 200 OK\r\n";
 static const char* HEADER_404 = "HTTP/1.0 404 NOT FOUND\r\n";
@@ -33,5 +33,6 @@ typedef struct {
 }args_T;
 
 void* acceptClient(void *param);
-void mainRouter(char buffer[], int cli_sockfd, char* domain);
+void router(char buffer[], int cli_sockfd, char* domain);
 int getFileSize(int filefd);
+char* findType(char* abspath);
