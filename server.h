@@ -23,14 +23,15 @@ static const char* HEADER_JS = "Content-Type: text/javascript\n\r\n";
 /*REMEMBER TO CHANGE BACK*/
 /*REMEMBER TO CHANGE BACK*/
 /*REMEMBER TO CHANGE BACK*/
-static const char* DOMAIN = "/home/ubuntu/comp30023/ass1/test";
+//static const char* DOMAIN = "/home/ubuntu/comp30023/ass1/test";
 //static const char* DOMAIN = "/home/comp30023/website";
 
 
 typedef struct {
     int cli_sockfd;
+    char* domain;
 }args_T;
 
 void* acceptClient(void *param);
-void mainRouter(char buffer[], int cli_sockfd);
+void mainRouter(char buffer[], int cli_sockfd, char* domain);
 int getFileSize(int filefd);

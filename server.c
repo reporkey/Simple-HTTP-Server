@@ -12,9 +12,8 @@ int main(int argc, char *argv[]) {
     struct sockaddr_in cli_addr;
     socklen_t clilen = sizeof(cli_addr);
 
-    if (argc < 2)
-    {
-        fprintf(stderr,"ERROR, no port provided\n");
+    if (argc < 3){
+        printf("ERROR, no port provided\n");
         exit(1);
     }
 
@@ -30,7 +29,9 @@ int main(int argc, char *argv[]) {
 		exit(1); 
     }
     portno = atoi(argv[1]);
-	 
+    char* domain = malloc(strlen(argv[2]) * sizeof(char));
+    strcpy(domain, argv[2]);
+
 	 //rewrite all bits to 0
     
     bzero((char *) &serv_addr, sizeof(serv_addr));
@@ -74,6 +75,7 @@ int main(int argc, char *argv[]) {
 
         args_T *args = malloc(sizeof(args_T) + 1);
         args->cli_sockfd = cli_sockfd;
+        args->domain = domain;
 
         /* Create threads, pass client to each thread*/
 
@@ -101,6 +103,7 @@ void* acceptClient(void *args) {
 
     args_T *tempargs = args;
     int cli_sockfd = tempargs->cli_sockfd;
+    char* domain = tempargs->domain;
 
     /* Read characters from the connection,
     then process */
@@ -113,7 +116,7 @@ void* acceptClient(void *args) {
 
     /* Place analise the requests*/
 
-    mainRouter(buffer, cli_sockfd);
+    mainRouter(buffer, cli_sockfd, domain);
 
 
     close(cli_sockfd);
@@ -121,7 +124,7 @@ void* acceptClient(void *args) {
     return 0;
 }
 
-void mainRouter(char buffer[], int cli_sockfd){
+void mainRouter(char buffer[], int cli_sockfd, char* domain){
 
     char* rltpath;
     char* abspath = (char *) malloc(MAX_BUF_CHAR_NO * sizeof(char));
@@ -134,8 +137,8 @@ void mainRouter(char buffer[], int cli_sockfd){
     rltpath = strtok(buffer, " ");
     rltpath = strtok(NULL, " ");
 
-    if (strncmp(rltpath, DOMAIN, 23) != 0) {
-        abspath = strcat(abspath, DOMAIN);
+    if (strncmp(rltpath, domain, strlen(domain)) != 0) {
+        abspath = strcat(abspath, domain);
         abspath = strcat(abspath, rltpath);
     }else{
         abspath = strcpy(abspath, rltpath);
@@ -144,7 +147,7 @@ void mainRouter(char buffer[], int cli_sockfd){
     /* Get the type*/
 
     char *type = malloc(MAX_HEAD_LEN * sizeof(char));
-    strcpy(type, strchr(abspath, '.'));
+    strcpy(type, strrchr(abspath, '.'));
 
     if (strcmp(type, ".html") == 0){
         strcpy(type, HEADER_HTML);
@@ -160,6 +163,7 @@ void mainRouter(char buffer[], int cli_sockfd){
         strcpy(type, HEADER_JS);
     }
 
+    printf("type: %s\n", type);
     if (access(abspath, R_OK) == 0){
 
         filefd = open(abspath, O_RDONLY);
@@ -173,6 +177,7 @@ void mainRouter(char buffer[], int cli_sockfd){
         char* header = malloc(MAX_HEAD_LEN * sizeof(char));
         strcpy(header, HEADER_200);
         strcat(header, type);
+//        printf("header: %s\n", header);
         n = write(cli_sockfd, header, strlen(header));
         if (n < 0){
             perror("ERROR send header");
