@@ -1,0 +1,5 @@
+Owned by Zichun Zhu 784145
+
+run make
+
+./server.c portno domain
