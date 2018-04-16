@@ -18,10 +18,10 @@
 static const int THREAD_NO = 10;
 static const int MAX_BUF_CHAR_NO = 2048;
 static const int MAX_HEAD_LEN = 4196;
-static const int MAX_FILE_SIZE = 100;
-static const char* HEADER_200 = "HTTP/1.0 200 OK\n";
+static const int MAX_FILE_SIZE = 20480;
+static const char* HEADER_200 = "HTTP/1.0 200 OK\r\n";
 static const char* HEADER_404 = "HTTP/1.0 404 NOT FOUND\r\n";
-static const char* HEADER_HTML = "Content-Type: text/html\n\r\n";
+static const char* HEADER_HTML = "Content-Type: text/html\r\n\r\n";
 static const char* HEADER_CSS = "Content-Type: text/css\r\n\r\n";
 static const char* HEADER_JPEG = "Content-Type: image/jpeg\n\r\n";
 static const char* HEADER_JS = "Content-Type: text/javascript\n\r\n";
@@ -112,7 +112,6 @@ int main(int argc, char *argv[]) {
         /* Create threads, pass client to each thread*/
 
         if (pthread_create(&tid, NULL, acceptClient, args)) {
-            printf("\n Error creating thread %d", i);
             exit(1);
         }
     }
@@ -183,16 +182,14 @@ void mainRouter(char buffer[], int cli_sockfd){
 
     if (strcmp(type, ".html") == 0){
         strcpy(type, HEADER_HTML);
-        printf("HTML abspath: %s\n", abspath);
     }
     if (strcmp(type, ".css") == 0){
-        printf("css abspath: %s\n", abspath);
         strcpy(type, HEADER_CSS);
     }
     if (strcmp(type, ".jpg") == 0){
-        printf("jpeg abspath: %s\n", abspath);
         strcpy(type, HEADER_JPEG);
     }
+
     if (strcmp(type, ".js") == 0){
         strcpy(type, HEADER_JS);
     }
