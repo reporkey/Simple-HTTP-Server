@@ -1,2 +1,6 @@
 /.idea/
 /test_log.txt
+/client
+/server.o
+/utilities.o
+/server
