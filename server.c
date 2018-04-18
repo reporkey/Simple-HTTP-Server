@@ -82,6 +82,7 @@ int main(int argc, char *argv[]) {
 
     /* close socket */
     pthread_join(tid, NULL);
+    free(domain);
 
 	close(sockfd);
 	return 0;
@@ -171,6 +172,7 @@ void router(char buffer[], int cli_sockfd, char* domain){
 
         char* header = malloc(MAX_HEAD_LEN * sizeof(char));
         strcpy(header, HEADER_404);
+        strcat(header, type);
         n = write(cli_sockfd, header, strlen(header));
         if (n < 0){
             perror("ERROR send header");
